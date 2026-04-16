@@ -49,7 +49,7 @@ func (i *headerList) Set(value string) error {
 
 // getSourceMap retrieves a sourcemap from a URL or a local file and returns
 // its sourceMap.
-func getSourceMap(source string, headers []string, proxyURL url.URL) (m sourceMap, err error) {
+func GetSourceMap(source string, headers []string, proxyURL url.URL) (m sourceMap, err error) {
 	var body []byte
 	var client http.Client
 
@@ -146,7 +146,7 @@ func getSourceMap(source string, headers []string, proxyURL url.URL) (m sourceMa
 
 // getSourceMapFromJS queries a JavaScript URL, parses its headers and content and looks for sourcemaps
 // follows the rules outlined in https://tc39.es/source-map-spec/#linking-generated-code
-func getSourceMapFromJS(jsurl string, headers []string, proxyURL url.URL) (m sourceMap, err error) {
+func GetSourceMapFromJS(jsurl string, headers []string, proxyURL url.URL) (m sourceMap, err error) {
 	var client http.Client
 
 	log.Printf("[+] Retrieving JavaScript from URL: %s.\n", jsurl)
@@ -240,7 +240,7 @@ func getSourceMapFromJS(jsurl string, headers []string, proxyURL url.URL) (m sou
 			}
 		}
 
-		return getSourceMap(sourceMapURL.String(), headers, proxyURL)
+		return GetSourceMap(sourceMapURL.String(), headers, proxyURL)
 	}
 
 	err = errors.New("[!] No sourcemap URL found")
@@ -248,7 +248,7 @@ func getSourceMapFromJS(jsurl string, headers []string, proxyURL url.URL) (m sou
 }
 
 // writeFile writes content to file at path p.
-func writeFile(p string, content string) error {
+func WriteFile(p string, content string) error {
 	p = filepath.Clean(p)
 
 	if _, err := os.Stat(filepath.Dir(p)); os.IsNotExist(err) {
@@ -306,11 +306,11 @@ func main() {
 
 	// these need to just take the conf object
 	if conf.url != "" {
-		if sm, err = getSourceMap(conf.url, conf.headers, proxyURL); err != nil {
+		if sm, err = GetSourceMap(conf.url, conf.headers, proxyURL); err != nil {
 			log.Fatal(err)
 		}
 	} else if conf.jsurl != "" {
-		if sm, err = getSourceMapFromJS(conf.jsurl, conf.headers, proxyURL); err != nil {
+		if sm, err = GetSourceMapFromJS(conf.jsurl, conf.headers, proxyURL); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -346,7 +346,7 @@ func main() {
 
 		// Use filepath.Join. https://parsiya.net/blog/2019-03-09-path.join-considered-harmful/
 		scriptPath, scriptData := filepath.Join(conf.outdir, filepath.Clean(sourcePath)), sm.SourcesContent[i]
-		err := writeFile(scriptPath, scriptData)
+		err := WriteFile(scriptPath, scriptData)
 		if err != nil {
 			log.Printf("Error writing %s file: %s", scriptPath, err)
 		}
