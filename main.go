@@ -270,7 +270,7 @@ func cleanWindows(p string) string {
 	return m1.ReplaceAllString(p, "")
 }
 
-func main() {
+func main2() {
 	var proxyURL url.URL
 	var conf config
 	var err error
