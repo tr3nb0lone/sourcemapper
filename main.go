@@ -29,12 +29,11 @@ type sourceMap struct {
 
 // command line args
 type config struct {
-	outdir   string     // output directory
-	url      string     // sourcemap url
-	jsurl    string     // javascript url
-	proxy    string     // upstream proxy server
-	insecure bool       // skip tls verification
-	headers  headerList // additional user-supplied http headers
+	outdir  string     // output directory
+	url     string     // sourcemap url
+	jsurl   string     // javascript url
+	proxy   string     // upstream proxy server
+	headers headerList // additional user-supplied http headers
 }
 
 type headerList []string
@@ -50,7 +49,7 @@ func (i *headerList) Set(value string) error {
 
 // getSourceMap retrieves a sourcemap from a URL or a local file and returns
 // its sourceMap.
-func getSourceMap(source string, headers []string, insecureTLS bool, proxyURL url.URL) (m sourceMap, err error) {
+func getSourceMap(source string, headers []string, proxyURL url.URL) (m sourceMap, err error) {
 	var body []byte
 	var client http.Client
 
@@ -68,13 +67,10 @@ func getSourceMap(source string, headers []string, insecureTLS bool, proxyURL ur
 			// If it's a URL, get it.
 			req, err := http.NewRequest("GET", u.String(), nil)
 			tr := &http.Transport{}
+			tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
 			if err != nil {
 				log.Fatalln(err)
-			}
-
-			if insecureTLS {
-				tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 			}
 
 			if proxyURL != (url.URL{}) {
@@ -150,7 +146,7 @@ func getSourceMap(source string, headers []string, insecureTLS bool, proxyURL ur
 
 // getSourceMapFromJS queries a JavaScript URL, parses its headers and content and looks for sourcemaps
 // follows the rules outlined in https://tc39.es/source-map-spec/#linking-generated-code
-func getSourceMapFromJS(jsurl string, headers []string, insecureTLS bool, proxyURL url.URL) (m sourceMap, err error) {
+func getSourceMapFromJS(jsurl string, headers []string, proxyURL url.URL) (m sourceMap, err error) {
 	var client http.Client
 
 	log.Printf("[+] Retrieving JavaScript from URL: %s.\n", jsurl)
@@ -163,13 +159,10 @@ func getSourceMapFromJS(jsurl string, headers []string, insecureTLS bool, proxyU
 
 	req, err := http.NewRequest("GET", u.String(), nil)
 	tr := &http.Transport{}
+	tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
 	if err != nil {
 		log.Fatalln(err)
-	}
-
-	if insecureTLS {
-		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
 	if proxyURL != (url.URL{}) {
@@ -247,7 +240,7 @@ func getSourceMapFromJS(jsurl string, headers []string, insecureTLS bool, proxyU
 			}
 		}
 
-		return getSourceMap(sourceMapURL.String(), headers, insecureTLS, proxyURL)
+		return getSourceMap(sourceMapURL.String(), headers, proxyURL)
 	}
 
 	err = errors.New("[!] No sourcemap URL found")
@@ -287,7 +280,6 @@ func main() {
 	flag.StringVar(&conf.jsurl, "jsurl", "", "URL to JavaScript file - cannot be used with url")
 	flag.StringVar(&conf.proxy, "proxy", "", "Proxy URL")
 	help := flag.Bool("help", false, "Show help")
-	flag.BoolVar(&conf.insecure, "insecure", false, "Ignore invalid TLS certificates")
 	flag.Var(&conf.headers, "header", "A header to send with the request, similar to curl's -H. Can be set multiple times, EG: \"./sourcemapper --header \"Cookie: session=bar\" --header \"Authorization: blerp\"")
 	flag.Parse()
 
@@ -314,11 +306,11 @@ func main() {
 
 	// these need to just take the conf object
 	if conf.url != "" {
-		if sm, err = getSourceMap(conf.url, conf.headers, conf.insecure, proxyURL); err != nil {
+		if sm, err = getSourceMap(conf.url, conf.headers, proxyURL); err != nil {
 			log.Fatal(err)
 		}
 	} else if conf.jsurl != "" {
-		if sm, err = getSourceMapFromJS(conf.jsurl, conf.headers, conf.insecure, proxyURL); err != nil {
+		if sm, err = getSourceMapFromJS(conf.jsurl, conf.headers, proxyURL); err != nil {
 			log.Fatal(err)
 		}
 	}
