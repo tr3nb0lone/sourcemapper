@@ -1,4 +1,4 @@
-package main
+package sourcemapper
 
 import (
 	"bufio"
