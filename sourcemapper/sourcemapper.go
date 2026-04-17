@@ -1,7 +1,6 @@
 package sourcemapper
 
 import (
-	"bufio"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
@@ -9,7 +8,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/textproto"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -27,27 +25,14 @@ type SourceMap struct {
 
 // command line args
 type Config struct {
-	Outdir  string     // output directory
-	Url     string     // sourcemap url
-	Jsurl   string     // javascript url
-	Proxy   string     // upstream proxy server
-	Headers HeaderList // additional user-supplied http headers
-}
-
-type HeaderList []string
-
-func (i *HeaderList) String() string {
-	return ""
-}
-
-func (i *HeaderList) Set(value string) error {
-	*i = append(*i, value)
-	return nil
+	Outdir string // output directory
+	Url    string // sourcemap url
+	Jsurl  string // javascript url
 }
 
 // getSourceMap retrieves a sourcemap from a URL or a local file and returns
 // its sourceMap.
-func GetSourceMap(source string, headers []string, proxyURL url.URL) (m SourceMap, err error) {
+func GetSourceMap(source string) (m SourceMap, err error) {
 	var body []byte
 	var client http.Client
 
@@ -71,27 +56,8 @@ func GetSourceMap(source string, headers []string, proxyURL url.URL) (m SourceMa
 				log.Fatalln(err)
 			}
 
-			if proxyURL != (url.URL{}) {
-				tr.Proxy = http.ProxyURL(&proxyURL)
-			}
-
 			client = http.Client{
 				Transport: tr,
-			}
-
-			if len(headers) > 0 {
-				headerString := strings.Join(headers, "\r\n") + "\r\n\r\n" // squish all the headers together with CRLFs
-				log.Printf("[+] Setting the following headers: \n%s", headerString)
-
-				r := bufio.NewReader(strings.NewReader(headerString))
-				tpReader := textproto.NewReader(r)
-				mimeHeader, err := tpReader.ReadMIMEHeader()
-
-				if err != nil {
-					log.Fatalln(err)
-				}
-
-				req.Header = http.Header(mimeHeader)
 			}
 
 			res, err := client.Do(req)
@@ -144,7 +110,7 @@ func GetSourceMap(source string, headers []string, proxyURL url.URL) (m SourceMa
 
 // getSourceMapFromJS queries a JavaScript URL, parses its headers and content and looks for sourcemaps
 // follows the rules outlined in https://tc39.es/source-map-spec/#linking-generated-code
-func GetSourceMapFromJS(jsurl string, headers []string, proxyURL url.URL) (m SourceMap, err error) {
+func GetSourceMapFromJS(jsurl string) (m SourceMap, err error) {
 	var client http.Client
 
 	log.Printf("[+] Retrieving JavaScript from URL: %s.\n", jsurl)
@@ -163,27 +129,8 @@ func GetSourceMapFromJS(jsurl string, headers []string, proxyURL url.URL) (m Sou
 		log.Fatalln(err)
 	}
 
-	if proxyURL != (url.URL{}) {
-		tr.Proxy = http.ProxyURL(&proxyURL)
-	}
-
 	client = http.Client{
 		Transport: tr,
-	}
-
-	if len(headers) > 0 {
-		headerString := strings.Join(headers, "\r\n") + "\r\n\r\n" // squish all the headers together with CRLFs
-		log.Printf("[+] Setting the following headers: \n%s", headerString)
-
-		r := bufio.NewReader(strings.NewReader(headerString))
-		tpReader := textproto.NewReader(r)
-		mimeHeader, err := tpReader.ReadMIMEHeader()
-
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		req.Header = http.Header(mimeHeader)
 	}
 
 	res, err := client.Do(req)
@@ -238,7 +185,7 @@ func GetSourceMapFromJS(jsurl string, headers []string, proxyURL url.URL) (m Sou
 			}
 		}
 
-		return GetSourceMap(sourceMapURL.String(), headers, proxyURL)
+		return GetSourceMap(sourceMapURL.String())
 	}
 
 	err = errors.New("[!] No sourcemap URL found")

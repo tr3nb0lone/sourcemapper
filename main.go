@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"log"
-	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -12,16 +11,13 @@ import (
 )
 
 func main() {
-	var proxyURL url.URL
 	var conf smapper.Config
 	var err error
 
 	flag.StringVar(&conf.Outdir, "output", "", "Source file output directory - REQUIRED")
 	flag.StringVar(&conf.Url, "url", "", "URL or path to the Sourcemap file - cannot be used with jsurl")
 	flag.StringVar(&conf.Jsurl, "jsurl", "", "URL to JavaScript file - cannot be used with url")
-	flag.StringVar(&conf.Proxy, "proxy", "", "Proxy URL")
 	help := flag.Bool("help", false, "Show help")
-	flag.Var(&conf.Headers, "header", "A header to send with the request, similar to curl's -H. Can be set multiple times, EG: \"./sourcemapper --header \"Cookie: session=bar\" --header \"Authorization: blerp\"")
 	flag.Parse()
 
 	if *help || (conf.Url == "" && conf.Jsurl == "") || conf.Outdir == "" {
@@ -35,23 +31,15 @@ func main() {
 		return
 	}
 
-	if conf.Proxy != "" {
-		p, err := url.Parse(conf.Proxy)
-		if err != nil {
-			log.Fatal(err)
-		}
-		proxyURL = *p
-	}
-
 	var sm smapper.SourceMap
 
 	// these need to just take the conf object
 	if conf.Url != "" {
-		if sm, err = smapper.GetSourceMap(conf.Url, conf.Headers, proxyURL); err != nil {
+		if sm, err = smapper.GetSourceMap(conf.Url); err != nil {
 			log.Fatal(err)
 		}
 	} else if conf.Jsurl != "" {
-		if sm, err = smapper.GetSourceMapFromJS(conf.Jsurl, conf.Headers, proxyURL); err != nil {
+		if sm, err = smapper.GetSourceMapFromJS(conf.Jsurl); err != nil {
 			log.Fatal(err)
 		}
 	}
